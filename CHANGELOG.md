@@ -6,11 +6,103 @@
 
 ### Improvements and bug fixes
 
+#### Build, CI, internal
+
+#### Dashboards
+
+#### Translations
+
+#### Documentation
+
+- docs: update security policy to emphasize network-level protection ([27172cba](https://github.com/teslamate-org/teslamate/commit/27172cba54782f9a8eb7fdd9ea3a481dfd9d8f2b) - @JakobLichterfeld)
+
+## [4.0.1] - 2026-06-14
+
+This release resolves the issue with refresh tokens. This was a community effort: the community conducted research, submitted pull requests, and the maintainers provided test images. We love to see, and we hope, we do not need another quick hotfix in the next days, weeks, ... .
+To make your TeslaMate experience even better, we have also made more than 8 other improvements.
+
+Enjoy!
+
+### New features
+
+### Improvements and bug fixes
+
+- fix: enable HTTP/2 and set TLS to 1.3 for TESLA_AUTH_HOST (#5406 - @kenc420 and @longzheng)
+- feat: log Erlang and OTP version (#5397 - @swiffer)
+
+#### Build, CI, internal
+
+- ci: remove now obsolete ARMv7 buildcache (#5397 - @swiffer)
+- build: remove now unused zstd compression tool to reduce docker image size (#5397 - @swiffer)
+- build(deps): bump floki from 0.38.1 to 0.38.3 (#5359)
+- ci(osv-scanner): don't fail on main pushes and merge queue (#5410 - @JakobLichterfeld)
+
+#### Dashboards
+
+#### Translations
+
+#### Documentation
+
+- docs: clarify Grafana and Erlang requirements (#5397 - @swiffer)
+- docs: clarify which docker images are provided and what to do if the user have a Raspberry Pi with ARMv7 OS (#5397 - @swiffer)
+- docs: clarify Erlang and OTP support in contributing guide (#5397 - @swiffer)
+
+## [4.0.0] - 2026-06-13
+
+**This is a breaking change release:**
+
+This release resolves the issue of 403 Forbidden errors with Owner API tokens. To accomplish this, we had to drop ARMv7 support, a plan that had been in place for a long time, as it held us back from recent updates. The need for this change in such a short time span was unforeseeable.
+To make your TeslaMate experience even better, we have also made more than 4 other improvements.
+
+Enjoy!
+
+### New features
+
+### Improvements and bug fixes
+
+- fix: restore vehicle_unavailable fallback for streaming fetches to prevent unwanted vehicle online state (#5378 - @ciyahu)
+- fix: properly clean up state and delete tokens on sign out (#5379 - @jlestel)
+
+#### Build, CI, internal
+
+- build: use Elixir 1.19.5 OTP 28 (#5391 - @NirKli and @JakobLichterfeld)
+- build: drop ARMv7 support as announced in Changelog of v3.1.0 (#5391 - @JakobLichterfeld)
+- build(deps): update flake.lock (#5386)
+- build(deps): bump shell-quote from 1.8.3 to 1.8.4 in /website (#5381)
+
+#### Dashboards
+
+#### Translations
+
+#### Documentation
+
+## [3.1.0] - 2026-06-07
+
+MCU2 upgraded cars are now fully supported in the main release (please switch from the now deprecated mcu2 branch aka pr-4453).
+
+As always, there have been many improvements. We now use the latest version of Grafana (13.0.1+security-01). The dashboards have been improved in terms of performance, and all dashboards now function as expected even if no geofence exists. BRIN indexes are now maintained to prevent performance degradation over time.
+To make your TeslaMate experience even better, we have also made more than 80 other improvements.
+
+Enjoy!
+
+### ARMv7 deprecation
+
+This is the last TeslaMate release to include ARMv7 Docker images. To keep up with current Elixir versions, ARMv7 support will be dropped going forward. Please migrate your OS to ARM64 or AMD64 before upgrading to the next release. If this is not possible, please inform us in #5304.
+
+### New features
+
+- feat: handle sleep behavior of MCU2 upgraded cars (#4453 -> [f58df80](https://github.com/teslamate-org/teslamate/commit/f58df8088c3b935851e84e2f935a041fc393b3ff) - @micves, @JakobLichterfeld and @brianmay)
+
+### Improvements and bug fixes
+
 - feat(webview): Sort vehicles by display_priority (#5188 - @olsoybakk and @swiffer)
 - feat(webview): Make icons inherit text color for better contrast in dark mode (#5193 - @olsoybakk)
 - feat(webview): Add dark mode support for background and buttons in the map (#5240 - @olsoybakk and @swiffer)
 - fix(webview): Prevent rounding of map tiles via Bulma CSS (#5265 - @swiffer)
 - perf: ensure BRIN indexes don't degrade over time (#5276 - @swiffer)
+- fix: fix folder creation and bash 3.2 compatibility in dashboards.sh (#5233 - @svennergr)
+- fix: handle nil tire pressure values in summary view (#5297 - @elemated)
+- feat: use Grafana 13.0.1+security-01 (#5324 - @swiffer)
 
 #### Build, CI, internal
 
@@ -40,25 +132,64 @@
 - build(deps-dev): bump esbuild from 0.27.3 to 0.27.7 in /assets (#5261 - @swiffer)
 - build(deps-dev): bump esbuild-sass-plugin from 3.6.0 to 3.7.0 in /assets (#5261 - @swiffer)
 - build(deps-dev): bump sass from 1.97.3 to 1.99.0 in /assets (#5261 - @swiffer)
-- build(deps): update packages in /website and remove obsolete overrides (#5264 - @swiffer)
+- build(deps): update packages in /website and remove obsolete overrides (#5266 - @swiffer)
 - build(deps): update flake.lock (#5275)
+- build(deps): update flake.lock (#5288)
+- build(deps): bump docusaurus from 3.9.2 to 3.10.0 in /website (#5302 - @swiffer)
+- refactor: replace fake_online_state integer with typed mcu2_online_check atom (#5245 - @brianmay)
+- fix: update GitHub Actions configuration for Dependabot to include action directories (#5316 - @swiffer)
+- build(deps): bump docker/login-action from 4.0.0 to 4.1.0, docker/build-push-action from 7.0.0 to 7.1.0, actions/upload-artifact from 7.0.0 to 7.0.1, actions/upload-artifact/merge from 7.0.0 to 7.0.1, erlef/setup-beam from 1.18.1 to 1.24.0, actions/cache from 5.0.4 to 5.0.5, actions/cache/restore from 5.0.4 to 5.0.5, actions/cache/save from 5.0.4 to 5.0.5 and crate-ci/typos from 1.45.0 to 1.46.0 (#5317)
+- build(deps): bump leaflet-geoman-free from 2.19.2 to 2.19.3 in /assets (#5301 - @swiffer)
+- build(deps): bump plug_cowboy from 2.8.0 to 2.8.1 (#5314)
+- build(deps-dev): bump esbuild from 0.27.7 to 0.28.0 in /assets (#5312)
+- build(deps-dev): bump credo from 1.7.17 to 1.7.18 (#5315)
+- sec(deps): add uuid override to version 14.0.0 in /website (#5320 - @JakobLichterfeld)
+- build(deps): bump @babel/plugin-transform-modules-systemjs from 7.29.0 to 7.29.4 in /website (#5328)
+- build(deps): bump fast-uri from 3.1.0 to 3.1.2 in /website (#5327)
+- build(deps): update flake.lock (#5326)
+- sec(deps): fix OSV vulnerabilities - update cowlib, decimal, and phoenix to patched versions (#5332 - @brianmay)
+- ci: add osv scanner to scan for vulnerabilities (#5332 - @brianmay and @JakobLichterfeld)
+- build(deps): update flake.lock (#5338)
+- refactor: use frame key when specifying window to improve readability (#5339 - @swiffer)
+- build(deps): bump cowlib from 2.16.0 to 2.16.1 (#5342 - @JakobLichterfeld)
+- build(deps): bump cowboy from 2.14.2 to 2.15.0 (#5342 - @JakobLichterfeld)
+- build(deps): bump plug from 1.19.1 to 1.19.2 (#5342 - @JakobLichterfeld)
+- build(deps): bump postgrex from 0.22.0 to 0.22.2 and db_connection from 2.9.0 to 2.10.1 (#5342 - @JakobLichterfeld)
+- build(deps): update flake.lock (#5342 - @JakobLichterfeld)
+- build(deps): bump webpack-dev-server from 5.2.3 to 5.2.4 in /website (#5343)
+- sec(deps): add ws override to version 8.20.1 in /website (#5344 - @JakobLichterfeld)
+- feat(nix): update NixOS version to 26.05 (#5350 - @JakobLichterfeld)
+- fix(nix): correct URL format for PostgreSQL connection in Grafana 13+ (#5351 - @JakobLichterfeld)
+- fix(nix): make grafana.secretKeyFile optional with old insecure grafana default fallback (#5352 - @JakobLichterfeld)
+- build(deps): bump ex_cldr from 2.47.2 to 2.47.4 (#5361)
+- ci(deps): bump the actions-deps group across 4 directories with 11 updates (#5368)
+- build(deps): update flake.lock (#5354)
+- build(deps): bump finch from 0.21.0 to 0.22.0 (#5358)
+- build(deps): bump react and react-dom from 19.2.5 to 19.2.6 in /website (#5366)
+- build(deps-dev): bump sass from 1.99.0 to 1.100.0 in /assets (#5360)
+- build(deps): bump @docusaurus/core, /faster and /preset-classic from 3.10.0 to 3.10.1 in /website (#5365)
 
 #### Dashboards
 
 - fix: use FLOOR/CEIL over ROUND for timestamps used in dashboard links to avoid timeranges becoming to narrow (#5187 - @swiffer)
-- fix: ensure Charges / Drives dashboards load correctly if no Geofence exists (#5199 - @swiffer)
+- fix: ensure Charges / Drives dashboards load correctly if no Geofence exists (#5199, #5335 - @swiffer)
 - fix: division by zero in SQL query for cost_mileage in Trips dashboard (#5198 - @DrMichael)
 - fix: handle incomplete data correctly in Charging Stats / Statistics / Trips dashboards (#5229 - @swiffer)
 - feat: enable timepicker in efficiency dashboard (#5257 - @swiffer)
 - fix: ensure low precision mode is used for consumption gross for larger intervals (#5257 - @swiffer)
+- feat: improve filters in Statistics dashboard (#5340 - @DrMichael)
+- feat: add geofence filter to Charging Stats dashboard with default to all (#5355 - @faekz0r)
 
 #### Translations
 
 - i18n: updated Catalan default.po (#5180 - @pellix)
+- i18n: Update Korean translations in default.po (#5218 - @dongbum)
 
 #### Documentation
 
 - docs: drop private schema before restore (#5190 - @brianmay)
+- docs: remove references to mcu2-upgraded-cars branch (#5371- @brianmay)
+- docs: update DROP SCHEMA commands to include IF EXISTS to avoid issues with old installations (@5372- @JakobLichterfeld)
 
 ## [3.0.0] - 2026-02-28
 
@@ -146,6 +277,7 @@ We believe this step is necessary to protect the project from exploitation and t
 - build(deps): bump ajv in /website (#5149)
 - chore(website): bump mimimatch to version 3.1.5 to solve CVE-2026-26996, CVE-2026-27903 and CVE-2026-27904 (#5155 - @JakobLichterfeld)
 - chore(website): bump serialize-javascript to version 7.0.3 to solve CWE-96 (#5156 - @JakobLichterfeld)
+- build(deps): bump qs and express in /website (#5348)
 
 #### Dashboards
 
@@ -2779,7 +2911,10 @@ New users need to sign in via the web interface.
 
 ## [1.0.0] - 2019-07-25
 
-[unreleased]: https://github.com/teslamate-org/teslamate/compare/v3.0.0...HEAD
+[unreleased]: https://github.com/teslamate-org/teslamate/compare/v4.0.1...HEAD
+[4.0.1]: https://github.com/teslamate-org/teslamate/compare/v4.0.0...v4.0.1
+[4.0.0]: https://github.com/teslamate-org/teslamate/compare/v3.1.0...v4.0.0
+[3.1.0]: https://github.com/teslamate-org/teslamate/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/teslamate-org/teslamate/compare/v2.2.0...v3.0.0
 [2.2.0]: https://github.com/teslamate-org/teslamate/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/teslamate-org/teslamate/compare/v2.1.0...v2.1.1
