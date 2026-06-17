@@ -1,5 +1,5 @@
 diff --git a/.github/actions/build/action.yml b/.github/actions/build/action.yml
-index 9a03b231..6e8f32bd 100644
+index 5dc5300e..a254b6f0 100644
 --- a/.github/actions/build/action.yml
 +++ b/.github/actions/build/action.yml
 @@ -8,6 +8,9 @@ inputs:
@@ -25,16 +25,16 @@ index 9a03b231..6e8f32bd 100644
 +
      - name: Docker meta
        id: meta
-       uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+       uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
 @@ -52,7 +62,7 @@ runs:
        if: inputs.is_dockerhub_pushed != ''
-       uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+       uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
        with:
 -        username: teslamate
 +        username: ${{ inputs.docker_username }}
          password: ${{ inputs.docker_password }}
      - name: Login to GitHub Container Registry
-       uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+       uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
 @@ -69,9 +79,9 @@ runs:
          labels: ${{ steps.meta.outputs.labels }}
          tags: ${{ steps.docker_meta.outputs.tags }}
@@ -49,7 +49,7 @@ index 9a03b231..6e8f32bd 100644
      - name: Export digest
        shell: bash
 diff --git a/.github/workflows/buildx.yml b/.github/workflows/buildx.yml
-index cb95bc64..de248086 100644
+index d6500b5d..21b38b5b 100644
 --- a/.github/workflows/buildx.yml
 +++ b/.github/workflows/buildx.yml
 @@ -14,7 +14,7 @@ on:
@@ -70,7 +70,7 @@ index cb95bc64..de248086 100644
      strategy:
        fail-fast: false
        matrix:
-@@ -51,6 +51,7 @@ jobs:
+@@ -48,6 +48,7 @@ jobs:
          uses: ./.github/actions/build
          with:
            is_dockerhub_pushed: "1"
@@ -78,7 +78,7 @@ index cb95bc64..de248086 100644
            docker_password: ${{ secrets.DOCKER_PASSWORD }}
            repository_owner: ${{ github.repository_owner }}
            repository: ${{ github.repository }}
-@@ -62,7 +63,7 @@ jobs:
+@@ -59,7 +60,7 @@ jobs:
      needs:
        - check_paths
        - teslamate_build
@@ -86,17 +86,17 @@ index cb95bc64..de248086 100644
 +    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
      steps:
        - name: Checkout
-         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-@@ -70,7 +71,7 @@ jobs:
+         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+@@ -67,7 +68,7 @@ jobs:
        - name: Login to Docker Hub
-         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
          with:
 -          username: teslamate
 +          username: ${{ secrets.DOCKER_USERNAME }}
            password: ${{ secrets.DOCKER_PASSWORD }}
  
        - uses: ./.github/actions/merge
-@@ -83,7 +84,7 @@ jobs:
+@@ -80,7 +81,7 @@ jobs:
              type=edge
    grafana:
      needs: check_paths
@@ -105,9 +105,9 @@ index cb95bc64..de248086 100644
      runs-on: ubuntu-24.04
      timeout-minutes: 10
      steps:
-@@ -93,11 +94,12 @@ jobs:
+@@ -90,11 +91,12 @@ jobs:
        - name: Login to Docker Hub
-         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
          with:
 -          username: teslamate
 +          username: ${{ secrets.DOCKER_USERNAME }}
@@ -120,7 +120,7 @@ index cb95bc64..de248086 100644
              type=edge
              type=schedule,pattern=edge
 diff --git a/README.md b/README.md
-index 36c71c64..23a32161 100644
+index 97b43192..030eeba0 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,4 +1,4 @@

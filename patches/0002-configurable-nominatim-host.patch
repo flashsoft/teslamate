@@ -1,5 +1,5 @@
 diff --git a/lib/teslamate/http.ex b/lib/teslamate/http.ex
-index ee42f589..6a66e5bc 100644
+index c4e6dd0a..7eeb520a 100644
 --- a/lib/teslamate/http.ex
 +++ b/lib/teslamate/http.ex
 @@ -1,6 +1,10 @@
@@ -20,8 +20,8 @@ index ee42f589..6a66e5bc 100644
 -      "https://nominatim.openstreetmap.org" => [size: 3] ++ nominatim_proxy,
 +      nominatim_host() => [size: 3] ++ nominatim_proxy,
        "https://api.github.com" => [size: 1],
-       :default => [size: System.get_env("HTTP_POOL_SIZE", "5") |> String.to_integer()]
-     }
+       System.get_env("TESLA_AUTH_HOST", "https://auth.tesla.com") => [
+         protocols: [:http1, :http2],
 diff --git a/lib/teslamate/locations/geocoder.ex b/lib/teslamate/locations/geocoder.ex
 index fe859017..ee852fba 100644
 --- a/lib/teslamate/locations/geocoder.ex
