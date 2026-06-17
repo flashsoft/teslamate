@@ -5,6 +5,11 @@ defmodule TeslaMate.Locations.GeocoderTest do
 
   import Mock
 
+  setup do
+    on_exit(fn -> System.delete_env("NOMINATIM_HOST") end)
+    :ok
+  end
+
   defp geocoder_mock(lat, lon, body) do
     {Tesla.Adapter.Finch, [],
      call: fn %Tesla.Env{} = env, _opts ->
@@ -228,6 +233,27 @@ defmodule TeslaMate.Locations.GeocoderTest do
                   state_district: nil
                 }} = Geocoder.reverse_lookup(46.2806871, 6.0134696)
       end
+    end
+  end
+
+  test "uses configured nominatim host" do
+    System.put_env("NOMINATIM_HOST", "https://nominatim.example.com")
+
+    with_mock Tesla.Adapter.Finch,
+      call: fn %Tesla.Env{} = env, _opts ->
+        assert env.url == "https://nominatim.example.com/reverse"
+        {:ok, %Tesla.Env{body: %{"error" => "Unable to geocode"}, headers: [], status: 200}}
+      end do
+      assert Geocoder.reverse_lookup(37.889602, 41.129182) ==
+               {:ok,
+                %{
+                  display_name: "Unknown",
+                  raw: %{"error" => "Unable to geocode"},
+                  latitude: 0.0,
+                  longitude: 0.0,
+                  osm_id: 0,
+                  osm_type: "unknown"
+                }}
     end
   end
 end

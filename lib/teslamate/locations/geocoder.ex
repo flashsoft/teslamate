@@ -5,12 +5,12 @@ defmodule TeslaMate.Locations.Geocoder do
 
   adapter Tesla.Adapter.Finch, name: TeslaMate.HTTP, receive_timeout: 30_000
 
-  plug Tesla.Middleware.BaseUrl, "https://nominatim.openstreetmap.org"
   plug Tesla.Middleware.Headers, [{"user-agent", "TeslaMate/#{@version}"}]
   plug Tesla.Middleware.JSON
   plug Tesla.Middleware.Logger, debug: true, log_level: &log_level/1
 
   alias TeslaMate.Locations.Address
+  alias TeslaMate.HTTP
 
   def reverse_lookup(lat, lon, lang \\ "en") do
     opts = [
@@ -64,7 +64,9 @@ defmodule TeslaMate.Locations.Geocoder do
   end
 
   defp query(url, lang, params) do
-    case get(url, query: params, headers: [{"Accept-Language", lang}]) do
+    base_url = HTTP.nominatim_host()
+
+    case get(base_url <> url, query: params, headers: [{"Accept-Language", lang}]) do
       {:ok, %Tesla.Env{status: 200, body: body}} -> {:ok, body}
       {:ok, %Tesla.Env{body: %{"error" => reason}}} -> {:error, reason}
       {:ok, %Tesla.Env{} = env} -> {:error, reason: "Unexpected response", env: env}
