@@ -1,0 +1,148 @@
+diff --git a/lib/teslamate/http.ex b/lib/teslamate/http.ex
+index ee42f589..6a66e5bc 100644
+--- a/lib/teslamate/http.ex
++++ b/lib/teslamate/http.ex
+@@ -1,6 +1,10 @@
+ defmodule TeslaMate.HTTP do
+   require Logger
+ 
++  def nominatim_host do
++    System.get_env("NOMINATIM_HOST", "https://nominatim.openstreetmap.org")
++  end
++
+   def pools do
+     nominatim_proxy =
+       case build_proxy_opts_from_env("NOMINATIM_PROXY") do
+@@ -13,7 +17,7 @@ defmodule TeslaMate.HTTP do
+       System.get_env("TESLA_API_HOST", "https://owner-api.teslamotors.com") => [
+         size: System.get_env("TESLA_API_POOL_SIZE", "10") |> String.to_integer()
+       ],
+-      "https://nominatim.openstreetmap.org" => [size: 3] ++ nominatim_proxy,
++      nominatim_host() => [size: 3] ++ nominatim_proxy,
+       "https://api.github.com" => [size: 1],
+       :default => [size: System.get_env("HTTP_POOL_SIZE", "5") |> String.to_integer()]
+     }
+diff --git a/lib/teslamate/locations/geocoder.ex b/lib/teslamate/locations/geocoder.ex
+index fe859017..ee852fba 100644
+--- a/lib/teslamate/locations/geocoder.ex
++++ b/lib/teslamate/locations/geocoder.ex
+@@ -5,12 +5,12 @@ defmodule TeslaMate.Locations.Geocoder do
+ 
+   adapter Tesla.Adapter.Finch, name: TeslaMate.HTTP, receive_timeout: 30_000
+ 
+-  plug Tesla.Middleware.BaseUrl, "https://nominatim.openstreetmap.org"
+   plug Tesla.Middleware.Headers, [{"user-agent", "TeslaMate/#{@version}"}]
+   plug Tesla.Middleware.JSON
+   plug Tesla.Middleware.Logger, debug: true, log_level: &log_level/1
+ 
+   alias TeslaMate.Locations.Address
++  alias TeslaMate.HTTP
+ 
+   def reverse_lookup(lat, lon, lang \\ "en") do
+     opts = [
+@@ -64,7 +64,9 @@ defmodule TeslaMate.Locations.Geocoder do
+   end
+ 
+   defp query(url, lang, params) do
+-    case get(url, query: params, headers: [{"Accept-Language", lang}]) do
++    base_url = HTTP.nominatim_host()
++
++    case get(base_url <> url, query: params, headers: [{"Accept-Language", lang}]) do
+       {:ok, %Tesla.Env{status: 200, body: body}} -> {:ok, body}
+       {:ok, %Tesla.Env{body: %{"error" => reason}}} -> {:error, reason}
+       {:ok, %Tesla.Env{} = env} -> {:error, reason: "Unexpected response", env: env}
+diff --git a/test/teslamate/http_test.exs b/test/teslamate/http_test.exs
+index d78c5d40..da12b739 100644
+--- a/test/teslamate/http_test.exs
++++ b/test/teslamate/http_test.exs
+@@ -3,17 +3,20 @@ defmodule TeslaMate.HTTPTest do
+   import ExUnit.CaptureLog
+ 
+   setup do
++    on_exit(fn -> System.delete_env("NOMINATIM_HOST") end)
+     on_exit(fn -> System.delete_env("NOMINATIM_PROXY") end)
+     :ok
+   end
+ 
+   test "no env -> nominatim has only size: 3" do
++    System.delete_env("NOMINATIM_HOST")
+     System.delete_env("NOMINATIM_PROXY")
+     pools = TeslaMate.HTTP.pools()
+     assert pools["https://nominatim.openstreetmap.org"] == [size: 3]
+   end
+ 
+   test "valid http proxy -> nominatim has conn_opts" do
++    System.delete_env("NOMINATIM_HOST")
+     System.put_env("NOMINATIM_PROXY", "http://127.0.0.1:7890")
+     pools = TeslaMate.HTTP.pools()
+ 
+@@ -32,4 +35,13 @@ defmodule TeslaMate.HTTPTest do
+     assert log =~ "unsupported scheme"
+     assert log =~ "fallback: no proxy"
+   end
++
++  test "custom nominatim host -> pool uses configured host" do
++    System.put_env("NOMINATIM_HOST", "https://nominatim.example.com")
++    System.delete_env("NOMINATIM_PROXY")
++
++    pools = TeslaMate.HTTP.pools()
++
++    assert pools["https://nominatim.example.com"] == [size: 3]
++  end
+ end
+diff --git a/test/teslamate/locations/geocoder_test.exs b/test/teslamate/locations/geocoder_test.exs
+index d6390c1c..f7ab6467 100644
+--- a/test/teslamate/locations/geocoder_test.exs
++++ b/test/teslamate/locations/geocoder_test.exs
+@@ -5,6 +5,11 @@ defmodule TeslaMate.Locations.GeocoderTest do
+ 
+   import Mock
+ 
++  setup do
++    on_exit(fn -> System.delete_env("NOMINATIM_HOST") end)
++    :ok
++  end
++
+   defp geocoder_mock(lat, lon, body) do
+     {Tesla.Adapter.Finch, [],
+      call: fn %Tesla.Env{} = env, _opts ->
+@@ -230,4 +235,25 @@ defmodule TeslaMate.Locations.GeocoderTest do
+       end
+     end
+   end
++
++  test "uses configured nominatim host" do
++    System.put_env("NOMINATIM_HOST", "https://nominatim.example.com")
++
++    with_mock Tesla.Adapter.Finch,
++      call: fn %Tesla.Env{} = env, _opts ->
++        assert env.url == "https://nominatim.example.com/reverse"
++        {:ok, %Tesla.Env{body: %{"error" => "Unable to geocode"}, headers: [], status: 200}}
++      end do
++      assert Geocoder.reverse_lookup(37.889602, 41.129182) ==
++               {:ok,
++                %{
++                  display_name: "Unknown",
++                  raw: %{"error" => "Unable to geocode"},
++                  latitude: 0.0,
++                  longitude: 0.0,
++                  osm_id: 0,
++                  osm_type: "unknown"
++                }}
++    end
++  end
+ end
+diff --git a/website/docs/configuration/environment_variables.md b/website/docs/configuration/environment_variables.md
+index 301cd9c3..90a2aee7 100644
+--- a/website/docs/configuration/environment_variables.md
++++ b/website/docs/configuration/environment_variables.md
+@@ -55,7 +55,8 @@ TeslaMate accepts the following environment variables for runtime configuration:
+ | **POLLING_ONLINE_INTERVAL**            | Interval between API fetch when the vehicle is online (in seconds). **Important: Do not alter this setting unless you are certain of the implications.**                                                                                                                                                         | 60                                                                                                                                                                  |
+ | **POLLING_DEFAULT_INTERVAL**           | Default interval between API fetch (in seconds). **Important: Do not alter this setting unless you are certain of the implications.**                                                                                                                                                                            | 15                                                                                                                                                                  |
+ | **POLLING_MINIMUM_INTERVAL**           | Minimum interval between API fetch. No minimum by default. **Important: Do not alter this setting unless you are certain of the implications.**                                                                                                                                                                  | 0                                                                                                                                                                   |
+-| **HTTP_POOL_SIZE**                     | The default size of the HTTP connection pool for domains other than `TESLA_API_HOST`, `nominatim.openstreetmap.org`, and `api.github.com`. This setting determines the maximum number of simultaneous connections allowed for these domains.                                                                     | 5                                                                                                                                                                   |
++| **HTTP_POOL_SIZE**                     | The default size of the HTTP connection pool for domains other than `TESLA_API_HOST`, `NOMINATIM_HOST`, and `api.github.com`. This setting determines the maximum number of simultaneous connections allowed for these domains.                                                                                 | 5                                                                                                                                                                   |
+ | **HTTP_POOL_TIMEOUT**                  | The maximum time (in microseconds) to wait for a connection from the HTTP pool before timing out. This setting helps prevent indefinite waits when the pool is exhausted.                                                                                                                                        | 10000                                                                                                                                                               |
+ | **ULIMIT_MAX_NOFILE**                  | Sets the maximum number of open file descriptors for the TeslaMate process. This can prevent memory bloat in environments with very high default `ulimit` values. Set to `0` to disable this feature.                                                                                                            | 65536                                                                                                                                                               |
++| **NOMINATIM_HOST**                     | Hostname of the OpenStreetMap Nominatim API.                                                                                                                                                                                                                                                                     | [https://nominatim.openstreetmap.org](https://nominatim.openstreetmap.org)                                                                                         |
+ | **NOMINATIM_PROXY**                    | HTTP proxy for OpenStreetMap Nominatim API requests (e.g. `http://127.0.0.1:7897`, HTTP only). Similar to [`nominatim_http_proxy`](https://nominatim.org/release-docs/latest/customize/Settings/#nominatim_http_proxy).                                                                                          |                                                                                                                                                                     |
