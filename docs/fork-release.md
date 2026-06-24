@@ -15,6 +15,7 @@ Patch files live in `patches/`:
 - `0001-fork-publishing-config.patch`
   - publishes Docker Hub images under `babyworld/teslamate`
   - uses `DOCKER_USERNAME` for Docker Hub login
+  - publishes GHCR release tags under `ghcr.io/flashsoft/teslamate`
   - lowercases GHCR build-cache refs
   - lets `v*` tag pushes publish even when the tagged commit changes `.github/**`
 - `0002-configurable-nominatim-host.patch`
@@ -38,7 +39,7 @@ The script uses `git apply --3way`. A successful apply leaves changes staged.
 git switch main
 git fetch upstream --prune --tags
 git merge upstream/main
-git diff --binary upstream/main -- .github/actions/build/action.yml .github/workflows/buildx.yml README.md > patches/0001-fork-publishing-config.patch
+git diff --binary upstream/main -- .github/actions/build/action.yml .github/workflows/buildx.yml .github/workflows/ghcr_build.yml README.md > patches/0001-fork-publishing-config.patch
 git diff --binary upstream/main -- lib/teslamate/http.ex lib/teslamate/locations/geocoder.ex test/teslamate/http_test.exs test/teslamate/locations/geocoder_test.exs website/docs/configuration/environment_variables.md > patches/0002-configurable-nominatim-host.patch
 git status --short
 ```
@@ -93,9 +94,15 @@ ghcr.io/flashsoft/teslamate
 ghcr.io/flashsoft/teslamate/grafana
 ```
 
-Current GHCR workflow triggers on `main` pushes and pull requests, not release tags.
+GHCR publishing is handled separately from Docker Hub, but follows the same version-tag rule:
 
-GHCR cache refs used by Docker Hub builds are separate from release images:
+- `main` pushes publish `main`
+- pull requests publish PR tags for internal PRs
+- `v*` tag pushes publish semver tags such as `4.0.1` and `4.0`
+
+The workflow bypasses path filtering for `v*` tag pushes for the same reason as Docker Hub releases: release commits can contain `.github/**` changes.
+
+GHCR cache refs used by Docker Hub builds are separate from GHCR release images:
 
 ```text
 ghcr.io/flashsoft/teslamate:buildcache-...
@@ -148,4 +155,4 @@ curl -sS "https://hub.docker.com/v2/repositories/babyworld/teslamate/tags/4.0.1"
 curl -sS "https://hub.docker.com/v2/repositories/babyworld/teslamate/tags/4.0"
 ```
 
-Do not treat the presence of only `edge` as a release. `edge` comes from scheduled builds.
+Do not treat the presence of only `edge` as a release. `edge` comes from scheduled Docker Hub builds.
