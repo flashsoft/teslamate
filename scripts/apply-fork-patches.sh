@@ -6,7 +6,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # this from the repo root with a copy of this script outside the worktree);
 # fall back to the script's own location for direct in-repo use.
 if ! repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
-  repo_root="$(cd "$script_dir/.." && git rev-parse --show-toplevel)"
+	repo_root="$(cd "$script_dir/.." && git rev-parse --show-toplevel)"
 fi
 cd "$repo_root"
 
@@ -16,21 +16,21 @@ cd "$repo_root"
 patches_dir="${1:-patches}"
 
 patches=(
-  "$patches_dir/0001-fork-publishing-config.patch"
-  "$patches_dir/0002-configurable-nominatim-host.patch"
+	"$patches_dir/0001-fork-publishing-config.patch"
+	"$patches_dir/0002-configurable-nominatim-host.patch"
 )
 
 for patch in "${patches[@]}"; do
-  echo "applying: $patch"
-  if git apply --3way "$patch"; then
-    continue
-  fi
+	echo "applying: $patch"
+	if git apply --3way "$patch"; then
+		continue
+	fi
 
-  if git apply --reverse --check "$patch" >/dev/null 2>&1; then
-    echo "already applied: $patch"
-    continue
-  fi
+	if git apply --reverse --check "$patch" >/dev/null 2>&1; then
+		echo "already applied: $patch"
+		continue
+	fi
 
-  echo "failed to apply: $patch" >&2
-  exit 1
+	echo "failed to apply: $patch" >&2
+	exit 1
 done

@@ -17,8 +17,8 @@ set -euo pipefail
 # this script from $RUNNER_TEMP, because the checkout of the upstream tag
 # below deletes the in-worktree copy of this very file.
 if ! repo_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  repo_root="$(cd "$script_dir/.." && git rev-parse --show-toplevel)"
+	script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	repo_root="$(cd "$script_dir/.." && git rev-parse --show-toplevel)"
 fi
 cd "$repo_root"
 
@@ -27,7 +27,7 @@ dry_run="${DRY_RUN:-0}"
 force="${FORCE:-0}"
 
 if ! git remote get-url upstream >/dev/null 2>&1; then
-  git remote add upstream "$upstream_url"
+	git remote add upstream "$upstream_url"
 fi
 
 # Fetch upstream release tags into a separate namespace so they can never
@@ -40,39 +40,39 @@ git fetch upstream '+refs/tags/v*:refs/tags/upstream/v*'
 # indistinguishable from fork releases. Remove leaked copies (same commit
 # as the upstream tag); keep diverging tags (those are fork releases).
 while read -r upstream_tag; do
-  version="${upstream_tag#upstream/}"
-  upstream_commit="$(git rev-list -n1 "refs/tags/$upstream_tag")"
-  if local_commit="$(git rev-list -n1 "refs/tags/$version" 2>/dev/null)"; then
-    if [ "$local_commit" = "$upstream_commit" ]; then
-      echo "removing leaked upstream tag: $version"
-      git tag -d "$version" >/dev/null
-    fi
-  fi
-done <<< "$(git tag -l 'upstream/v*')"
+	version="${upstream_tag#upstream/}"
+	upstream_commit="$(git rev-list -n1 "refs/tags/$upstream_tag")"
+	if local_commit="$(git rev-list -n1 "refs/tags/$version" 2>/dev/null)"; then
+		if [ "$local_commit" = "$upstream_commit" ]; then
+			echo "removing leaked upstream tag: $version"
+			git tag -d "$version" >/dev/null
+		fi
+	fi
+done <<<"$(git tag -l 'upstream/v*')"
 
 latest="$(git tag -l 'upstream/v*' --sort=-v:refname | head -n1)"
 if [ -z "$latest" ]; then
-  echo "no upstream release tags found"
-  exit 0
+	echo "no upstream release tags found"
+	exit 0
 fi
 version="${latest#upstream/}"
 echo "latest upstream release: $version"
 
 version_commit="$(git rev-list -n1 "refs/tags/$latest")"
 if local_commit="$(git rev-list -n1 "refs/tags/$version" 2>/dev/null)"; then
-  if [ "$local_commit" = "$version_commit" ]; then
-    # Leaked copy of the upstream tag; the cleanup above removes these, so
-    # reaching here means the deletion was refused. Recreate it patched.
-    echo "replacing unpatched fork tag: $version"
-    git tag -d "$version" >/dev/null
-  elif [ "$force" != "1" ]; then
-    echo "$version already released by the fork; nothing to do"
-    exit 0
-  else
-    echo "FORCE: re-releasing $version"
-    git tag -d "$version" >/dev/null
-    git push origin ":refs/tags/$version"
-  fi
+	if [ "$local_commit" = "$version_commit" ]; then
+		# Leaked copy of the upstream tag; the cleanup above removes these, so
+		# reaching here means the deletion was refused. Recreate it patched.
+		echo "replacing unpatched fork tag: $version"
+		git tag -d "$version" >/dev/null
+	elif [ "$force" != "1" ]; then
+		echo "$version already released by the fork; nothing to do"
+		exit 0
+	else
+		echo "FORCE: re-releasing $version"
+		git tag -d "$version" >/dev/null
+		git push origin ":refs/tags/$version"
+	fi
 fi
 
 # The patches live in the fork only, so a checkout of the upstream tag does
@@ -89,16 +89,16 @@ git checkout --detach "refs/tags/$latest"
 (cd "$repo_root" && "$patches_tmp/apply-fork-patches.sh" "$patches_tmp")
 
 if git diff --cached --quiet; then
-  echo "error: patches produced no changes for $version" >&2
-  exit 1
+	echo "error: patches produced no changes for $version" >&2
+	exit 1
 fi
 
 git commit -m "Apply fork patches to $version"
 git tag "$version"
 
 if [ "$dry_run" = "1" ]; then
-  echo "DRY_RUN: would push tag $version and trigger the image builds"
-  exit 0
+	echo "DRY_RUN: would push tag $version and trigger the image builds"
+	exit 0
 fi
 
 git push origin "refs/tags/$version"
@@ -107,9 +107,9 @@ git push origin "refs/tags/$version"
 # builds are dispatched explicitly. Both build workflows accept
 # workflow_dispatch and derive the semver tags from the tag ref.
 if command -v gh >/dev/null 2>&1; then
-  gh workflow run buildx.yml --ref "$version"
-  gh workflow run ghcr_build.yml --ref "$version"
-  echo "triggered image builds for $version"
+	gh workflow run buildx.yml --ref "$version"
+	gh workflow run ghcr_build.yml --ref "$version"
+	echo "triggered image builds for $version"
 else
-  echo "warning: gh CLI not found; trigger the build workflows manually" >&2
+	echo "warning: gh CLI not found; trigger the build workflows manually" >&2
 fi
