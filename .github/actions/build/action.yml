@@ -8,6 +8,9 @@ inputs:
   docker_password:
     description: "Docker password"
     required: true
+  docker_username:
+    description: "Docker Hub username"
+    required: true
   repository_owner:
     description: "Repository owner"
     required: true
@@ -39,6 +42,13 @@ runs:
         NORMALIZED_VERSION="${VERSION//\//-}"
         echo "normalized_version=${NORMALIZED_VERSION}" >> $GITHUB_OUTPUT
 
+    - name: normalize repository name for registry refs
+      id: normalize_repository
+      shell: bash
+      run: |
+        REPOSITORY="${{ inputs.repository }}"
+        echo "normalized_repository=${REPOSITORY,,}" >> $GITHUB_OUTPUT
+
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
@@ -52,7 +62,7 @@ runs:
       if: inputs.is_dockerhub_pushed != ''
       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
       with:
-        username: teslamate
+        username: ${{ inputs.docker_username }}
         password: ${{ inputs.docker_password }}
     - name: Login to GitHub Container Registry
       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -77,9 +87,9 @@ runs:
         provenance: false
         sbom: false
         cache-from: |
-          type=registry,ref=ghcr.io/${{ inputs.repository }}:buildcache-${{ matrix.cache_id }}-${{ steps.normalize_version.outputs.normalized_version }}
-          type=registry,ref=ghcr.io/${{ inputs.repository }}:buildcache-${{ matrix.cache_id }}-main
-        cache-to: type=registry,ref=ghcr.io/${{ inputs.repository }}:buildcache-${{ matrix.cache_id }}-${{ steps.normalize_version.outputs.normalized_version }},mode=max
+          type=registry,ref=ghcr.io/${{ steps.normalize_repository.outputs.normalized_repository }}:buildcache-${{ matrix.cache_id }}-${{ steps.normalize_version.outputs.normalized_version }}
+          type=registry,ref=ghcr.io/${{ steps.normalize_repository.outputs.normalized_repository }}:buildcache-${{ matrix.cache_id }}-main
+        cache-to: type=registry,ref=ghcr.io/${{ steps.normalize_repository.outputs.normalized_repository }}:buildcache-${{ matrix.cache_id }}-${{ steps.normalize_version.outputs.normalized_version }},mode=max
         outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
     - name: Generate SBOM for pushed image
       # Skip on pull_request and workflow_dispatch: both build unreviewed

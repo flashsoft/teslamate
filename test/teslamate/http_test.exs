@@ -3,17 +3,20 @@ defmodule TeslaMate.HTTPTest do
   import ExUnit.CaptureLog
 
   setup do
+    on_exit(fn -> System.delete_env("NOMINATIM_HOST") end)
     on_exit(fn -> System.delete_env("NOMINATIM_PROXY") end)
     :ok
   end
 
   test "no env -> nominatim has only size: 3" do
+    System.delete_env("NOMINATIM_HOST")
     System.delete_env("NOMINATIM_PROXY")
     pools = TeslaMate.HTTP.pools()
     assert pools["https://nominatim.openstreetmap.org"] == [size: 3]
   end
 
   test "valid http proxy -> nominatim has conn_opts" do
+    System.delete_env("NOMINATIM_HOST")
     System.put_env("NOMINATIM_PROXY", "http://127.0.0.1:7890")
     pools = TeslaMate.HTTP.pools()
 
@@ -31,5 +34,14 @@ defmodule TeslaMate.HTTPTest do
 
     assert log =~ "unsupported scheme"
     assert log =~ "fallback: no proxy"
+  end
+
+  test "custom nominatim host -> pool uses configured host" do
+    System.put_env("NOMINATIM_HOST", "https://nominatim.example.com")
+    System.delete_env("NOMINATIM_PROXY")
+
+    pools = TeslaMate.HTTP.pools()
+
+    assert pools["https://nominatim.example.com"] == [size: 3]
   end
 end
