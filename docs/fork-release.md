@@ -40,7 +40,7 @@ git switch main
 git fetch upstream --prune --tags
 git merge upstream/main
 git diff --binary upstream/main -- .github/actions/build/action.yml .github/workflows/buildx.yml .github/workflows/ghcr_build.yml README.md > patches/0001-fork-publishing-config.patch
-git diff --binary upstream/main -- lib/teslamate/http.ex lib/teslamate/locations/geocoder.ex test/teslamate/http_test.exs test/teslamate/locations/geocoder_test.exs website/docs/configuration/environment_variables.md > patches/0002-configurable-nominatim-host.patch
+git diff --binary upstream/main -- elixir/lib/teslamate/http.ex elixir/lib/teslamate/locations/geocoder.ex elixir/test/teslamate/http_test.exs elixir/test/teslamate/locations/geocoder_test.exs website/docs/configuration/environment_variables.md > patches/0002-configurable-nominatim-host.patch
 git status --short
 ```
 

@@ -1,5 +1,5 @@
 diff --git a/.github/actions/build/action.yml b/.github/actions/build/action.yml
-index 5dc5300e..a254b6f0 100644
+index 6577706c..dbf3fcc7 100644
 --- a/.github/actions/build/action.yml
 +++ b/.github/actions/build/action.yml
 @@ -8,6 +8,9 @@ inputs:
@@ -12,9 +12,9 @@ index 5dc5300e..a254b6f0 100644
    repository_owner:
      description: "Repository owner"
      required: true
-@@ -39,6 +42,13 @@ runs:
+@@ -40,6 +43,13 @@ runs:
          NORMALIZED_VERSION="${VERSION//\//-}"
-         echo "normalized_version=${NORMALIZED_VERSION}" >> $GITHUB_OUTPUT
+         echo "normalized_version=${NORMALIZED_VERSION}" >> "$GITHUB_OUTPUT"
  
 +    - name: normalize repository name for registry refs
 +      id: normalize_repository
@@ -25,19 +25,19 @@ index 5dc5300e..a254b6f0 100644
 +
      - name: Docker meta
        id: meta
-       uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
-@@ -52,7 +62,7 @@ runs:
+       uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+@@ -56,7 +66,7 @@ runs:
        if: inputs.is_dockerhub_pushed != ''
-       uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
        with:
 -        username: teslamate
 +        username: ${{ inputs.docker_username }}
          password: ${{ inputs.docker_password }}
      - name: Login to GitHub Container Registry
-       uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
-@@ -69,9 +79,9 @@ runs:
-         labels: ${{ steps.meta.outputs.labels }}
-         tags: ${{ steps.docker_meta.outputs.tags }}
+       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+@@ -81,9 +91,9 @@ runs:
+         provenance: false
+         sbom: false
          cache-from: |
 -          type=registry,ref=ghcr.io/${{ inputs.repository }}:buildcache-${{ matrix.cache_id }}-${{ steps.normalize_version.outputs.normalized_version }}
 -          type=registry,ref=ghcr.io/${{ inputs.repository }}:buildcache-${{ matrix.cache_id }}-main
@@ -46,31 +46,31 @@ index 5dc5300e..a254b6f0 100644
 +          type=registry,ref=ghcr.io/${{ steps.normalize_repository.outputs.normalized_repository }}:buildcache-${{ matrix.cache_id }}-main
 +        cache-to: type=registry,ref=ghcr.io/${{ steps.normalize_repository.outputs.normalized_repository }}:buildcache-${{ matrix.cache_id }}-${{ steps.normalize_version.outputs.normalized_version }},mode=max
          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
-     - name: Export digest
-       shell: bash
+     - name: Generate SBOM for pushed image
+       # Skip on pull_request and workflow_dispatch: both build unreviewed
 diff --git a/.github/workflows/buildx.yml b/.github/workflows/buildx.yml
-index d6500b5d..a9201abf 100644
+index bdcf8bdd..d7c6fb0c 100644
 --- a/.github/workflows/buildx.yml
 +++ b/.github/workflows/buildx.yml
-@@ -14,7 +14,7 @@ on:
-       - "!.github/workflows/**" # Important: Exclude PRs related to .github/workflows from auto-run
-       - "!.github/actions/**" # Important: Exclude PRs related to .github/actions from auto-run
+@@ -19,7 +19,7 @@ on:
+   # publishes: a run from a branch overwrites the edge tag.
+   workflow_dispatch:
  env:
 -  REGISTRY_IMAGE: teslamate/teslamate
 +  REGISTRY_IMAGE: babyworld/teslamate
  
  permissions:
    contents: read
-@@ -26,7 +26,7 @@ jobs:
+@@ -34,7 +34,7 @@ jobs:
  
    teslamate_build:
      needs: check_paths
--    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule'
+-    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 +    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
      strategy:
        fail-fast: false
        matrix:
-@@ -48,6 +48,7 @@ jobs:
+@@ -56,6 +56,7 @@ jobs:
          uses: ./.github/actions/build
          with:
            is_dockerhub_pushed: "1"
@@ -78,36 +78,36 @@ index d6500b5d..a9201abf 100644
            docker_password: ${{ secrets.DOCKER_PASSWORD }}
            repository_owner: ${{ github.repository_owner }}
            repository: ${{ github.repository }}
-@@ -59,7 +60,7 @@ jobs:
+@@ -67,7 +68,7 @@ jobs:
      needs:
        - check_paths
        - teslamate_build
--    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule'
+-    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 +    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
      steps:
        - name: Checkout
-         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-@@ -67,7 +68,7 @@ jobs:
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+@@ -75,7 +76,7 @@ jobs:
        - name: Login to Docker Hub
-         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
          with:
 -          username: teslamate
 +          username: ${{ secrets.DOCKER_USERNAME }}
            password: ${{ secrets.DOCKER_PASSWORD }}
  
        - uses: ./.github/actions/merge
-@@ -80,7 +81,7 @@ jobs:
+@@ -88,7 +89,7 @@ jobs:
              type=edge
    grafana:
      needs: check_paths
--    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule'
+-    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 +    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
      runs-on: ubuntu-24.04
      timeout-minutes: 10
      steps:
-@@ -90,11 +91,12 @@ jobs:
+@@ -98,11 +99,12 @@ jobs:
        - name: Login to Docker Hub
-         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
          with:
 -          username: teslamate
 +          username: ${{ secrets.DOCKER_USERNAME }}
@@ -120,7 +120,7 @@ index d6500b5d..a9201abf 100644
              type=edge
              type=schedule,pattern=edge
 diff --git a/.github/workflows/ghcr_build.yml b/.github/workflows/ghcr_build.yml
-index 4a0cb86d..f58fb4db 100644
+index bd59bfa0..a8b68498 100644
 --- a/.github/workflows/ghcr_build.yml
 +++ b/.github/workflows/ghcr_build.yml
 @@ -3,6 +3,8 @@ name: Build GHCR images
@@ -132,34 +132,34 @@ index 4a0cb86d..f58fb4db 100644
      paths:
        - "**/*"
        - "!.github/**" # Important: Exclude pushes related to .github from auto-run
-@@ -29,7 +31,7 @@ jobs:
+@@ -37,7 +39,7 @@ jobs:
  
    check_if_pr_from_outside_repo:
      needs: check_paths
--    if: needs.check_paths.outputs.githubfolder == 'false'
-+    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false'
+-    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'workflow_dispatch'
++    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'workflow_dispatch'
      uses: ./.github/workflows/check_if_pr_from_outside_repo.yml
  
    teslamate_build:
-@@ -37,7 +39,7 @@ jobs:
+@@ -45,7 +47,7 @@ jobs:
      needs:
        - check_paths
        - check_if_pr_from_outside_repo
--    if: needs.check_paths.outputs.githubfolder == 'false' && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false'
-+    if: (startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false') && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false'
+-    if: (needs.check_paths.outputs.githubfolder == 'false' && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false') || (github.event_name == 'workflow_dispatch' && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false')
++    if: (startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'workflow_dispatch') && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false'
      strategy:
        fail-fast: false
        matrix:
-@@ -70,7 +72,7 @@ jobs:
+@@ -78,7 +80,7 @@ jobs:
      needs:
        - check_paths
        - teslamate_build
--    if: needs.check_paths.outputs.githubfolder == 'false'
-+    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false'
+-    if: needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'workflow_dispatch'
++    if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'workflow_dispatch'
      runs-on: ubuntu-24.04
      timeout-minutes: 10
      steps:
-@@ -87,12 +89,17 @@ jobs:
+@@ -95,12 +97,17 @@ jobs:
          uses: ./.github/actions/merge
          with:
            image: ${{ env.REGISTRY_IMAGE }}
@@ -173,12 +173,12 @@ index 4a0cb86d..f58fb4db 100644
      needs:
        - check_paths
        - check_if_pr_from_outside_repo
--    if: needs.check_paths.outputs.githubfolder == 'false' && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false'
-+    if: (startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false') && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false'
+-    if: (needs.check_paths.outputs.githubfolder == 'false' && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false') || (github.event_name == 'workflow_dispatch' && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false')
++    if: (startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'workflow_dispatch') && needs.check_if_pr_from_outside_repo.outputs.is_pr_from_outside_repo == 'false'
      runs-on: ubuntu-24.04
      steps:
-       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-@@ -107,5 +114,10 @@ jobs:
+       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+@@ -115,5 +122,10 @@ jobs:
        - uses: ./.github/actions/grafana
          with:
            image: ${{ env.REGISTRY_IMAGE }}/grafana
@@ -190,12 +190,12 @@ index 4a0cb86d..f58fb4db 100644
            labels: |
              org.opencontainers.image.version=${{ github.ref || github.ref_name }}
 diff --git a/README.md b/README.md
-index 97b43192..030eeba0 100644
+index 7e55bf95..8bcef432 100644
 --- a/README.md
 +++ b/README.md
 @@ -1,4 +1,4 @@
 -# TeslaMate
 +# TeslaMate fork
  
- [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](https://github.com/teslamate-org/teslamate/blob/main/LICENSE)
+ [![License](https://img.shields.io/badge/license-AGPL--3.0--or--later-green.svg)](https://github.com/teslamate-org/teslamate/blob/main/NOTICE)
  [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10859/badge)](https://www.bestpractices.dev/projects/10859)
