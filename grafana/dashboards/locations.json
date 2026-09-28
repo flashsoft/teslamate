@@ -22,6 +22,7 @@
     {
       "icon": "dashboard",
       "tags": [],
+      "targetBlank": true,
       "title": "TeslaMate",
       "tooltip": "",
       "type": "link",
@@ -83,7 +84,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -183,7 +184,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -263,7 +264,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -343,7 +344,7 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -413,6 +414,7 @@
         "legend": {
           "calcs": [],
           "displayMode": "list",
+          "overflow": "ellipsis",
           "placement": "bottom",
           "showLegend": false
         },
@@ -432,7 +434,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -507,6 +509,7 @@
         "legend": {
           "calcs": [],
           "displayMode": "list",
+          "overflow": "ellipsis",
           "placement": "bottom",
           "showLegend": false
         },
@@ -526,7 +529,7 @@
         "sizing": "auto",
         "valueMode": "color"
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -646,7 +649,7 @@
           }
         ]
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -760,7 +763,7 @@
                 "id": "links",
                 "value": [
                   {
-                    "targetBlank": true,
+                    "targetBlank": false,
                     "title": "",
                     "url": "${base_url:raw}/geo-fences/${__data.fields.path}"
                   }
@@ -891,7 +894,7 @@
         "cellHeight": "sm",
         "showHeader": true
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -1013,7 +1016,7 @@
                 "id": "links",
                 "value": [
                   {
-                    "targetBlank": true,
+                    "targetBlank": false,
                     "title": "",
                     "url": "${base_url:raw}/geo-fences/${__data.fields.id.numeric:raw}/edit"
                   }
@@ -1052,7 +1055,7 @@
         "cellHeight": "sm",
         "showHeader": true
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -1165,7 +1168,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Locations",
-  "uid": "ZzhF-aRWz",
+  "weekStart": "",
   "version": 1,
-  "weekStart": ""
+  "uid": "ZzhF-aRWz"
 }

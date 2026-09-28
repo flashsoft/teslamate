@@ -22,6 +22,7 @@
     {
       "icon": "dashboard",
       "tags": [],
+      "targetBlank": true,
       "title": "TeslaMate",
       "tooltip": "",
       "type": "link",
@@ -133,6 +134,8 @@
             "min"
           ],
           "displayMode": "table",
+          "enableFacetedFilter": false,
+          "overflow": "ellipsis",
           "placement": "bottom",
           "showLegend": true
         },
@@ -143,7 +146,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "13.0.1+security-01",
+      "pluginVersion": "13.2.1",
       "targets": [
         {
           "datasource": {
@@ -376,7 +379,7 @@
   "timepicker": {},
   "timezone": "browser",
   "title": "Charge Level",
-  "uid": "WopVO_mgz",
+  "weekStart": "",
   "version": 1,
-  "weekStart": ""
+  "uid": "WopVO_mgz"
 }

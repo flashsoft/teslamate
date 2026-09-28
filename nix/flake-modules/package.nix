@@ -1,58 +1,70 @@
 { ... }:
 {
   perSystem =
-    { lib
-    , pkgs
-    , system
-    , ...
+    {
+      lib,
+      pkgs,
+      system,
+      ...
     }:
     let
-      beamPackages = pkgs.beam.packagesWith pkgs.beam.interpreters.erlang_28;
-      elixir = beamPackages.elixir_1_19;
+      beamPackages = pkgs.beam.packagesWith pkgs.beam.interpreters.erlang_29;
+      elixir = beamPackages.elixir_1_20;
+      rebar3 = beamPackages.rebar3;
 
-      src = ../..;
-      version = builtins.readFile "${src}/VERSION";
+      # The whole repository, under a fixed name: mix.exs reads ../VERSION and
+      # the build needs ../grafana/dashboards, and sourceRoot below must not
+      # depend on how Nix names the copied tree (a dirty checkout gets a
+      # double-hashed store path, so the usual "source" would not match).
+      srcName = "teslamate-src";
+      src = builtins.path {
+        path = ../..;
+        name = srcName;
+      };
+      version = lib.trim (builtins.readFile "${src}/VERSION");
       pname = "teslamate";
 
       mixFodDeps = beamPackages.fetchMixDeps {
         TOP_SRC = src;
         pname = "${pname}-mix-deps";
         inherit src version;
-        hash = "sha256-KzbvAtJR1TFQuWFVcJBilA3aH4SdfBvVc+eq26dwxwE="; # if you change the mix deps, you need to update this hash
+        # See src above for why the root is the repository, not elixir/.
+        sourceRoot = "${srcName}/elixir";
+        hash = "sha256-J0lWeqbFz6qXYaa9HTmL3qdzeIB8P3rbLXPdJnUhmJU="; # if you change the mix deps, you need to update this hash
         # hash = pkgs.lib.fakeHash;
       };
 
       nodejs = pkgs.nodejs;
-      nodePackages = pkgs.buildNpmPackage {
-        name = "${pname}-assets";
-        src = "${src}/assets";
-        npmDepsHash = "sha256-3K7F4JFEka7IC+1CE1ih98U47XLhgVXBJB4xlu37rxw="; # if you change the npm deps, you need to update this hash
-        # npmDepsHash = pkgs.lib.fakeHash;
-        dontNpmBuild = true;
-        inherit nodejs;
+      assetsRoot = src + "/elixir/assets";
 
-        installPhase = ''
-          mkdir $out
-          cp -r node_modules $out
-          ln -s $out/node_modules/.bin $out/bin
-
-          rm $out/node_modules/phoenix
-          ln -s ${mixFodDeps}/phoenix $out/node_modules
-
-          rm $out/node_modules/phoenix_html
-          ln -s ${mixFodDeps}/phoenix_html $out/node_modules
-
-          rm $out/node_modules/phoenix_live_view
-          ln -s ${mixFodDeps}/phoenix_live_view $out/node_modules
-        '';
+      # assets/package-lock.json links phoenix, phoenix_html and
+      # phoenix_live_view as `file:../deps/*`. That directory only exists in a
+      # working tree after `mix deps.get`, so the already fetched mix deps are
+      # substituted for them here. Every other dependency is fetched from the
+      # integrity hashes in package-lock.json, which is why this needs no
+      # aggregate hash of its own.
+      npmSources = pkgs.importNpmLock {
+        npmRoot = assetsRoot;
+        packageSourceOverrides = {
+          "node_modules/phoenix" = "${mixFodDeps}/phoenix";
+          "node_modules/phoenix_html" = "${mixFodDeps}/phoenix_html";
+          "node_modules/phoenix_live_view" = "${mixFodDeps}/phoenix_live_view";
+        };
       };
 
-      cldr = pkgs.fetchFromGitHub {
-        owner = "elixir-cldr";
-        repo = "cldr";
-        rev = "v2.47.4"; # this must match the version in the mix file
-        sha256 = "sha256-LIQK6pZRAW1T3Ej2XAjnuPo82hPJ2KiMPWYmHWgx008="; # if you change the cldr version in the mix file, you need to update this hash
-        # sha256 = pkgs.lib.fakeHash;
+      nodePackages = pkgs.importNpmLock.buildNodeModules {
+        npmRoot = assetsRoot;
+        inherit nodejs;
+        derivationArgs = {
+          pname = "${pname}-assets";
+          inherit version;
+          # Overrides the sources buildNodeModules would derive itself, so that
+          # the phoenix packages resolve to mixFodDeps (see npmSources above).
+          npmDeps = npmSources;
+          postInstall = ''
+            ln -s $out/node_modules/.bin $out/bin
+          '';
+        };
       };
 
       teslamate = beamPackages.mixRelease {
@@ -64,10 +76,8 @@
           src
           mixFodDeps
           ;
-
-        # set the environment variables for the build
-        SKIP_LOCALE_DOWNLOAD = "true"; # do not download locales during build as they are already included in the cldr package from github
-        LOCALES = "${cldr}/priv/cldr";
+        # See src above for why the root is the repository, not elixir/.
+        sourceRoot = "${srcName}/elixir";
 
         postBuild = ''
           ln -sf ${mixFodDeps}/deps deps
@@ -81,18 +91,23 @@
           mix phx.digest --no-deps-check
         '';
 
+        postInstall = ''
+          install -Dm444 -t $out/share/doc/teslamate ${src}/NOTICE ${src}/LICENSE
+        '';
+
         meta = {
           mainProgram = "teslamate";
+          license = lib.licenses.agpl3Plus;
         };
       };
     in
     {
       options = {
-        teslamate.cldr = lib.mkOption {
+        teslamate.elixir = lib.mkOption {
           type = lib.types.package;
           readOnly = true;
         };
-        teslamate.elixir = lib.mkOption {
+        teslamate.rebar3 = lib.mkOption {
           type = lib.types.package;
           readOnly = true;
         };
@@ -100,7 +115,7 @@
 
       config = {
         teslamate = {
-          inherit cldr elixir;
+          inherit elixir rebar3;
         };
 
         packages = {

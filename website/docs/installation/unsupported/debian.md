@@ -55,12 +55,12 @@ sudo apt install erlang erlang-dev erlang-syntax-tools elixir
 </details>
 
 <details>
-  <summary>Grafana (v13.0.1+)</summary>
+  <summary>Grafana (v13.2.2+)</summary>
 
 ```bash
 sudo apt-get install -y apt-transport-https software-properties-common
-sudo add-apt-repository "deb https://packages.grafana.com/oss/deb stable main"
-wget -q -O - https://packages.grafana.com/gpg.key | sudo apt-key add -
+sudo add-apt-repository "deb https://apt.grafana.com stable main"
+wget -q -O - https://apt.grafana.com/gpg-full.key | sudo apt-key add -
 sudo apt-get update
 sudo apt-get install -y grafana
 sudo systemctl start grafana-server
@@ -135,6 +135,7 @@ _Note: The superuser privileges can be revoked after running the initial databas
 ## Compile Elixir Project
 
 ```bash
+cd elixir
 mix local.hex --force; mix local.rebar --force
 
 mix deps.get --only prod
@@ -154,8 +155,8 @@ sudo localectl set-locale LANG=en_US.UTF-8
 
 ## Starting TeslaMate at boot time
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
 
 <Tabs
 defaultValue="systemd"
@@ -195,9 +196,9 @@ Environment="MQTT_HOST=127.0.0.1"
 
 WorkingDirectory=/usr/src/teslamate
 
-ExecStartPre=/usr/src/teslamate/_build/prod/rel/teslamate/bin/teslamate eval "TeslaMate.Release.migrate"
-ExecStart=/usr/src/teslamate/_build/prod/rel/teslamate/bin/teslamate start
-ExecStop=/usr/src/teslamate/_build/prod/rel/teslamate/bin/teslamate stop
+ExecStartPre=/usr/src/teslamate/elixir/_build/prod/rel/teslamate/bin/teslamate eval "TeslaMate.Release.migrate"
+ExecStart=/usr/src/teslamate/elixir/_build/prod/rel/teslamate/bin/teslamate start
+ExecStop=/usr/src/teslamate/elixir/_build/prod/rel/teslamate/bin/teslamate stop
 
 [Install]
 WantedBy=multi-user.target
@@ -242,7 +243,7 @@ export MQTT_TLS="false"
 export TZ="Europe/Berlin"
 export TESLAMATEPATH=/usr/src/teslamate
 
-$TESLAMATEPATH/_build/prod/rel/teslamate/bin/teslamate start
+$TESLAMATEPATH/elixir/_build/prod/rel/teslamate/bin/teslamate start
 ```
 
 The following command needs to be run once during the installation process in order to create the database schema for the TeslaMate installation:
@@ -325,3 +326,15 @@ screen -S teslamate -L -dm bash -c "cd /usr/src/teslamate; ./start.sh; exec sh"
    ```
 
    :::
+
+## Usage
+
+1. [Generate an access and refresh token](../tokens.md)
+2. Open the web interface [http://your-ip-address:4000](http://localhost:4000)
+3. Enter the access and refresh token on the sign-in page
+4. The Grafana dashboards are available at [http://your-ip-address:3000](http://localhost:3000). Log in with the default user `admin` (initial password `admin`) and enter a secure password.
+5. In the TeslaMate web interface, go to _Settings → URLs_ and set the _Web App_ and _Dashboards_ URLs, so the links between TeslaMate and Grafana work in both directions.
+
+## Update
+
+To update the running TeslaMate configuration to the latest version, follow: [Upgrading to a new version](../../upgrading.mdx)

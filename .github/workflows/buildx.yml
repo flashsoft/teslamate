@@ -1,7 +1,6 @@
 name: Publish Docker images
 
 on:
-  workflow_dispatch:
   workflow_call:
   schedule:
     - cron: "0 3 * * *"
@@ -13,12 +12,21 @@ on:
       - "!.github/**" # Important: Exclude PRs related to .github from auto-run
       - "!.github/workflows/**" # Important: Exclude PRs related to .github/workflows from auto-run
       - "!.github/actions/**" # Important: Exclude PRs related to .github/actions from auto-run
+  # Pull requests touching .github are excluded from the automatic runs above,
+  # since the workflow definition that would run is the one from the pull
+  # request. This is the deliberate way to build them anyway, by someone with
+  # write access. The job conditions below allow for it. Note that this
+  # publishes: a run from a branch overwrites the edge tag.
+  workflow_dispatch:
 env:
   REGISTRY_IMAGE: babyworld/teslamate
 
 permissions:
   contents: read
   packages: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
   check_paths:
@@ -43,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Buildx
         uses: ./.github/actions/build
         with:
@@ -63,10 +71,10 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || needs.check_paths.outputs.githubfolder == 'false' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -86,10 +94,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Login to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -102,3 +110,5 @@ jobs:
             type=schedule,pattern=edge
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.version=${{ github.ref || github.ref_name }}
