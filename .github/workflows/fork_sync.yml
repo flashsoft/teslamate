@@ -1,0 +1,33 @@
+name: Fork release sync
+
+on:
+  schedule:
+    - cron: "23 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # push the patched release tag
+  actions: write # dispatch the image build workflows
+
+concurrency:
+  group: fork-release-sync
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the 3-way patch application needs the base blobs
+
+      - name: Release the latest upstream tag with fork patches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "fork-sync[bot]"
+          git config user.email "fork-sync[bot]@users.noreply.github.com"
+          # Run a copy: the script checks out the upstream tag, which
+          # deletes the in-worktree copy of the script itself.
+          cp scripts/sync-upstream-release.sh "$RUNNER_TEMP/"
+          "$RUNNER_TEMP/sync-upstream-release.sh"
